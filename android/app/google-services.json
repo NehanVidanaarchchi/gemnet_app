@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "497687246854",
+    "project_id": "gemstore-3b74f",
+    "storage_bucket": "gemstore-3b74f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:497687246854:android:13348ceaa365a79492ab87",
+        "android_client_info": {
+          "package_name": "com.example.gemnet_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "497687246854-4b57fpqbll283ks7m61i786sqihio186.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCpkuFh293chEyZ8kLBa1dShARJxlOGL0E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "497687246854-4b57fpqbll283ks7m61i786sqihio186.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
