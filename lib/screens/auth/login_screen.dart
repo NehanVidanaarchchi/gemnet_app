@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
+import 'role_selection_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String? _error;
 
-  Future<void> _testLogin(UserRole role) async {
+  Future<void> _signIn() async {
     if (_loading) return;
 
     setState(() {
@@ -26,7 +26,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final auth = context.read<AuthService>();
-      await auth.signInAsTestUser(role);
+      final bool isNewUser = await auth.signInWithGoogle();
+
+      if (!mounted) return;
+
+      if (isNewUser) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const RoleSelectionScreen(),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -82,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 56),
 
                 if (_error != null)
                   Padding(
@@ -97,35 +107,31 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                _LoginButton(
-                  label: 'Test Login as Buyer',
-                  icon: Icons.shopping_bag_outlined,
-                  loading: _loading,
-                  onPressed: () => _testLogin(UserRole.buyer),
-                ),
-
-                const SizedBox(height: 12),
-
-                _LoginButton(
-                  label: 'Test Login as Seller',
-                  icon: Icons.storefront_outlined,
-                  loading: _loading,
-                  onPressed: () => _testLogin(UserRole.seller),
-                ),
-
-                const SizedBox(height: 12),
-
-                _LoginButton(
-                  label: 'Test Login as Admin',
-                  icon: Icons.admin_panel_settings_outlined,
-                  loading: _loading,
-                  onPressed: () => _testLogin(UserRole.admin),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _loading ? null : _signIn,
+                    icon: _loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.black,
+                            ),
+                          )
+                        : const Icon(Icons.login),
+                    label: Text(
+                      _loading ? 'Signing in...' : 'Continue with Google',
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 24),
 
                 const Text(
-                  'Testing mode: No Gmail required.',
+                  'By continuing you agree to GemNet\'s marketplace terms.',
                   style: TextStyle(
                     color: AppColors.midGrey,
                     fontSize: 11,
@@ -136,42 +142,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _LoginButton extends StatelessWidget {
-  const _LoginButton({
-    required this.label,
-    required this.icon,
-    required this.loading,
-    required this.onPressed,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool loading;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton.icon(
-        onPressed: loading ? null : onPressed,
-        icon: loading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.black,
-                ),
-              )
-            : Icon(icon),
-        label: Text(label),
       ),
     );
   }
