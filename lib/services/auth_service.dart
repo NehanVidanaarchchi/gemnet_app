@@ -13,8 +13,9 @@ class AuthService {
 
   bool _googleInitialized = false;
 
-  // IMPORTANT: Paste your WEB CLIENT ID here.
-  // Not Android client ID.
+  // IMPORTANT:
+  // Paste your WEB CLIENT ID here.
+  // Example: 1234567890-abcxyz.apps.googleusercontent.com
   static const String _serverClientId =
       'PASTE_YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com';
 
@@ -36,7 +37,6 @@ class AuthService {
     await _initGoogleSignIn();
 
     final googleUser = await _googleSignIn.authenticate();
-
     final googleAuth = googleUser.authentication;
 
     final OAuthCredential credential = GoogleAuthProvider.credential(
@@ -52,7 +52,7 @@ class AuthService {
       throw Exception('Google login failed. Please try again.');
     }
 
-    await _createOrUpdateUserProfile(
+    await _createUserProfileIfMissing(
       uid: user.uid,
       name: user.displayName ?? 'GemNet User',
       email: user.email ?? '',
@@ -60,7 +60,76 @@ class AuthService {
     );
   }
 
-  Future<void> _createOrUpdateUserProfile({
+  Future<void> registerWithEmail({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final UserCredential userCredential =
+        await _auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password.trim(),
+    );
+
+    final User? user = userCredential.user;
+
+    if (user == null) {
+      throw Exception('Registration failed. Please try again.');
+    }
+
+    await user.updateDisplayName(name.trim());
+
+    await user.sendEmailVerification();
+
+    await _createUserProfileIfMissing(
+      uid: user.uid,
+      name: name.trim(),
+      email: email.trim(),
+      photoUrl: null,
+    );
+  }
+
+  Future<void> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    await _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password.trim(),
+    );
+  }
+
+  Future<void> sendVerificationEmail() async {
+    final User? user = currentUser;
+
+    if (user == null) {
+      throw Exception('No logged-in user found.');
+    }
+
+    await user.sendEmailVerification();
+  }
+
+  Future<bool> reloadAndCheckEmailVerified() async {
+    final User? user = currentUser;
+
+    if (user == null) {
+      return false;
+    }
+
+    await user.reload();
+
+    final User? refreshedUser = _auth.currentUser;
+
+    return refreshedUser?.emailVerified ?? false;
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(
+      email: email.trim(),
+    );
+  }
+
+  Future<void> _createUserProfileIfMissing({
     required String uid,
     required String name,
     required String email,
@@ -69,23 +138,24 @@ class AuthService {
     final docRef = _db.collection('users').doc(uid);
     final doc = await docRef.get();
 
-    final Map<String, dynamic> data = {
-      'name': name,
-      'email': email,
-      'photoUrl': photoUrl,
-      'role': 'buyer',
-      'isVerifiedSeller': false,
-      'isBanned': false,
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-
     if (!doc.exists) {
       await docRef.set({
-        ...data,
+        'name': name,
+        'email': email,
+        'photoUrl': photoUrl,
+        'role': 'buyer',
+        'isVerifiedSeller': false,
+        'isBanned': false,
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
     } else {
-      await docRef.update(data);
+      await docRef.update({
+        'name': name,
+        'email': email,
+        'photoUrl': photoUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     }
   }
 

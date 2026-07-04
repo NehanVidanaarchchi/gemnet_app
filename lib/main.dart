@@ -9,6 +9,7 @@ import 'services/app_state.dart';
 import 'models/user_model.dart';
 
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/email_verification_screen.dart';
 import 'screens/auth/banned_screen.dart';
 import 'screens/buyer/buyer_home_screen.dart';
 import 'screens/seller/seller_home_screen.dart';
@@ -101,6 +102,13 @@ class RootRouter extends StatelessWidget {
           return const LoginScreen();
         }
 
+        // Email/Gmail verification check.
+        // Google login users are usually already verified.
+        // Email/password users must verify their email first.
+        if (!firebaseUser.emailVerified) {
+          return const EmailVerificationScreen();
+        }
+
         return Consumer<AppState>(
           builder: (context, appState, _) {
             if (appState.isLoading) {
@@ -161,11 +169,11 @@ class StartupErrorScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Padding(
-        padding: EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
         child: Center(
           child: Text(
             'Startup error:\n\n$error',
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.redAccent,
               fontSize: 14,
             ),
