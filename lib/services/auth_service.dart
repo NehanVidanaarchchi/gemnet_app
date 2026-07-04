@@ -5,89 +5,133 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  AuthService();
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+
+  bool _googleInitialized = false;
+
+  // IMPORTANT: Paste your WEB CLIENT ID here.
+  // Not Android client ID.
+  static const String _serverClientId =
+      'PASTE_YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com';
 
   User? get currentUser => _auth.currentUser;
 
-  Future<bool> signInWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) {
-      return false;
-    }
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
-      accessToken: googleAuth.accessToken,
+  Future<void> _initGoogleSignIn() async {
+    if (_googleInitialized) return;
+
+    await _googleSignIn.initialize(
+      serverClientId: _serverClientId,
     );
 
-    final userCredential = await _auth.signInWithCredential(credential);
-    final user = userCredential.user;
+    _googleInitialized = true;
+  }
+
+  Future<void> signInWithGoogle() async {
+    await _initGoogleSignIn();
+
+    final googleUser = await _googleSignIn.authenticate();
+
+    final googleAuth = googleUser.authentication;
+
+    final OAuthCredential credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
+
+    final UserCredential userCredential =
+        await _auth.signInWithCredential(credential);
+
+    final User? user = userCredential.user;
+
     if (user == null) {
-      throw FirebaseAuthException(
-        code: 'user-not-found',
-        message: 'Google sign-in did not return a user.',
-      );
+      throw Exception('Google login failed. Please try again.');
     }
 
-    final userDoc = _firestore.collection('users').doc(user.uid);
-    final snapshot = await userDoc.get();
-    final isNewUser = !snapshot.exists;
-
-    if (isNewUser) {
-      await userDoc.set(
-        {
-          'name': user.displayName ?? '',
-          'email': user.email ?? '',
-          'photoUrl': user.photoURL,
-          'role': roleToString(UserRole.buyer),
-          'isVerifiedSeller': false,
-          'isBanned': false,
-          'phone': user.phoneNumber,
-          'createdAt': Timestamp.now(),
-        },
-      );
-    }
-
-    return isNewUser;
+    await _createOrUpdateUserProfile(
+      uid: user.uid,
+      name: user.displayName ?? 'GemNet User',
+      email: user.email ?? '',
+      photoUrl: user.photoURL,
+    );
   }
 
-  Future<UserModel?> fetchUserProfile(String uid) async {
-    final snapshot = await _firestore.collection('users').doc(uid).get();
-    if (!snapshot.exists || snapshot.data() == null) {
-      return null;
-    }
-    return UserModel.fromMap(snapshot.id, snapshot.data()!);
-  }
+  Future<void> _createOrUpdateUserProfile({
+    required String uid,
+    required String name,
+    required String email,
+    required String? photoUrl,
+  }) async {
+    final docRef = _db.collection('users').doc(uid);
+    final doc = await docRef.get();
 
-  Stream<UserModel?> watchUserProfile(String uid) {
-    return _firestore.collection('users').doc(uid).snapshots().map((snapshot) {
-      if (!snapshot.exists || snapshot.data() == null) {
-        return null;
-      }
-      return UserModel.fromMap(snapshot.id, snapshot.data()!);
-    });
+    final Map<String, dynamic> data = {
+      'name': name,
+      'email': email,
+      'photoUrl': photoUrl,
+      'role': 'buyer',
+      'isVerifiedSeller': false,
+      'isBanned': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (!doc.exists) {
+      await docRef.set({
+        ...data,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      await docRef.update(data);
+    }
   }
 
   Future<void> setUserRole(UserRole role) async {
-    final uid = currentUser?.uid;
-    if (uid == null) {
-      throw Exception('No signed-in user.');
+    final User? user = currentUser;
+
+    if (user == null) {
+      throw Exception('No logged-in user found.');
     }
-    await _firestore.collection('users').doc(uid).update(
-      {
-        'role': roleToString(role),
-      },
-    );
+
+    await _db.collection('users').doc(user.uid).update({
+      'role': roleToString(role),
+      'isVerifiedSeller': role == UserRole.seller,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<UserModel?> fetchUserProfile(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+
+    if (!doc.exists || doc.data() == null) {
+      return null;
+    }
+
+    return UserModel.fromMap(uid, doc.data()!);
+  }
+
+  Stream<UserModel?> watchUserProfile(String uid) {
+    return _db.collection('users').doc(uid).snapshots().map((doc) {
+      final data = doc.data();
+
+      if (!doc.exists || data == null) {
+        return null;
+      }
+
+      return UserModel.fromMap(uid, data);
+    });
   }
 
   Future<void> signOut() async {
     await _auth.signOut();
-    await _googleSignIn.signOut();
+
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {
+      // Ignore Google sign-out errors.
+    }
   }
 }
-

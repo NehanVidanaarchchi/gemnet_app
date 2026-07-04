@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
-import 'role_selection_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String? _error;
 
-  Future<void> _signIn() async {
+  Future<void> _googleLogin() async {
     if (_loading) return;
 
     setState(() {
@@ -26,17 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final auth = context.read<AuthService>();
-      final bool isNewUser = await auth.signInWithGoogle();
-
-      if (!mounted) return;
-
-      if (isNewUser) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => const RoleSelectionScreen(),
-          ),
-        );
-      }
+      await auth.signInWithGoogle();
     } catch (e) {
       if (!mounted) return;
 
@@ -111,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton.icon(
-                    onPressed: _loading ? null : _signIn,
+                    onPressed: _loading ? null : _googleLogin,
                     icon: _loading
                         ? const SizedBox(
                             width: 18,
