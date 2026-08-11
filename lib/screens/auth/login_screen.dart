@@ -176,22 +176,27 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
             child: Column(
               children: [
-                const Icon(
-                  Icons.diamond_outlined,
-                  color: AppColors.white,
-                  size: 64,
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.emerald, AppColors.emeraldDark]),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [BoxShadow(color: AppColors.emerald.withValues(alpha: .22), blurRadius: 30, offset: const Offset(0, 10))],
+                  ),
+                  child: const Icon(Icons.diamond_rounded, color: AppColors.black, size: 40),
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'GemNet',
                   style: TextStyle(
                     color: AppColors.white,
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.8,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -203,7 +208,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 32),
+
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(_isRegister ? 'Create your account' : 'Welcome back',
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _isRegister ? 'Join a trusted community of gem enthusiasts.' : 'Sign in to continue exploring exceptional gemstones.',
+                    style: const TextStyle(color: AppColors.midGrey, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 Form(
                   key: _formKey,
@@ -341,8 +361,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       _loading
                           ? 'Please wait...'
                           : _isRegister
-                              ? 'Create Account & Verify Gmail'
-                              : 'Login with Email',
+                              ? 'Create account'
+                              : 'Sign in',
                     ),
                   ),
                 ),
@@ -392,8 +412,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: _loading ? null : _switchMode,
                   child: Text(
                     _isRegister
-                        ? 'Already have an account? Login'
-                        : 'Need an account? Register with Gmail',
+                        ? 'Already have an account? Sign in'
+                        : 'New to GemNet? Create an account',
                   ),
                 ),
 

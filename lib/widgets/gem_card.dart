@@ -13,12 +13,13 @@ class GemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isSoldOut = gem.status == GemStatus.soldout;
 
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.richBlack,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.darkGrey),
         ),
         clipBehavior: Clip.antiAlias,
@@ -53,12 +54,12 @@ class GemCard extends StatelessWidget {
                       ),
                     ),
                   Positioned(
-                    top: 8,
-                    left: 8,
+                    top: 10,
+                    left: 10,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
+                        color: AppColors.black.withValues(alpha: 0.78),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(gem.gemId, style: const TextStyle(color: AppColors.white, fontSize: 10)),
@@ -68,7 +69,7 @@ class GemCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -76,7 +77,7 @@ class GemCard extends StatelessWidget {
                     gem.title.isNotEmpty ? gem.title : gem.type,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                    style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -88,7 +89,7 @@ class GemCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     '${gem.currency} ${gem.price.toStringAsFixed(0)}',
-                    style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(color: AppColors.emerald, fontWeight: FontWeight.w800, fontSize: 14),
                   ),
                 ],
               ),

@@ -13,9 +13,9 @@ class LoadingScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SpinKitFadingCircle(color: AppColors.white, size: 44),
+            const SpinKitFadingCircle(color: AppColors.emerald, size: 44),
             const SizedBox(height: 20),
-            Text('GemNet', style: TextStyle(color: AppColors.white, fontSize: 18, letterSpacing: 3)),
+            const Text('GemNet', style: TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: 1)),
           ],
         ),
       ),
@@ -33,7 +33,7 @@ class InlineLoading extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SpinKitFadingCircle(color: AppColors.white, size: 32),
+          const SpinKitFadingCircle(color: AppColors.emerald, size: 32),
           if (message != null) ...[
             const SizedBox(height: 12),
             Text(message!, style: const TextStyle(color: AppColors.lightGrey)),

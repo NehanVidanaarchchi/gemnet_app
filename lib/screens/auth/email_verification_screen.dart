@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,7 +19,44 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   String? _message;
   String? _error;
 
+  Timer? _cooldownTimer;
+  int _resendCooldown = 0;
+
+  @override
+  void dispose() {
+    _cooldownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startResendCooldown() {
+    _cooldownTimer?.cancel();
+
+    setState(() {
+      _resendCooldown = 60;
+    });
+
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (_resendCooldown <= 1) {
+        timer.cancel();
+        setState(() {
+          _resendCooldown = 0;
+        });
+      } else {
+        setState(() {
+          _resendCooldown--;
+        });
+      }
+    });
+  }
+
   Future<void> _checkVerification() async {
+    if (_loading) return;
+
     setState(() {
       _loading = true;
       _message = null;
@@ -32,18 +71,24 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
       if (verified) {
         setState(() {
-          _message = 'Email verified successfully. Loading your account...';
+          _message = 'Email verified successfully. Please wait...';
         });
+
+        // Simple refresh method: sign out and ask user to login again.
+        // This avoids app being stuck because authStateChanges may not fire after reload.
+        await Future.delayed(const Duration(seconds: 1));
+        await auth.signOut();
       } else {
         setState(() {
-          _error = 'Email is not verified yet. Please check Gmail and tap the verification link.';
+          _error =
+              'Email is not verified yet. Open Gmail, tap the verification link, then come back and tap this button again.';
         });
       }
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
+        _error = _cleanError(e);
       });
     } finally {
       if (mounted) {
@@ -55,6 +100,16 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   Future<void> _resendEmail() async {
+    if (_loading) return;
+
+    if (_resendCooldown > 0) {
+      setState(() {
+        _message = null;
+        _error = 'Please wait $_resendCooldown seconds before resending.';
+      });
+      return;
+    }
+
     setState(() {
       _loading = true;
       _message = null;
@@ -67,14 +122,25 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
       if (!mounted) return;
 
+      _startResendCooldown();
+
       setState(() {
-        _message = 'Verification email sent again. Check your Gmail inbox.';
+        _message =
+            'Verification email sent again. Check Inbox, Spam, Promotions, or All Mail.';
       });
     } catch (e) {
       if (!mounted) return;
 
+      final errorText = e.toString();
+
       setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
+        if (errorText.contains('too-many-requests')) {
+          _error =
+              'Too many requests. Firebase blocked this device temporarily. Please wait and try again later.';
+          _startResendCooldown();
+        } else {
+          _error = _cleanError(e);
+        }
       });
     } finally {
       if (mounted) {
@@ -86,8 +152,34 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   Future<void> _logout() async {
-    final auth = context.read<AuthService>();
-    await auth.signOut();
+    if (_loading) return;
+
+    setState(() {
+      _loading = true;
+      _message = null;
+      _error = null;
+    });
+
+    try {
+      final auth = context.read<AuthService>();
+      await auth.signOut();
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = _cleanError(e);
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  String _cleanError(Object e) {
+    return e.toString().replaceFirst('Exception: ', '');
   }
 
   @override
@@ -119,6 +211,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
+                  textAlign: TextAlign.center,
                 ),
 
                 const SizedBox(height: 12),
@@ -128,6 +221,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   style: const TextStyle(
                     color: AppColors.midGrey,
                     fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 10),
+
+                const Text(
+                  'After clicking the link in Gmail, return here and tap the button below.',
+                  style: TextStyle(
+                    color: AppColors.midGrey,
+                    fontSize: 12,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -187,9 +291,14 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   width: double.infinity,
                   height: 52,
                   child: OutlinedButton.icon(
-                    onPressed: _loading ? null : _resendEmail,
+                    onPressed:
+                        _loading || _resendCooldown > 0 ? null : _resendEmail,
                     icon: const Icon(Icons.send_outlined),
-                    label: const Text('Resend Verification Email'),
+                    label: Text(
+                      _resendCooldown > 0
+                          ? 'Resend in $_resendCooldown s'
+                          : 'Resend Verification Email',
+                    ),
                   ),
                 ),
 

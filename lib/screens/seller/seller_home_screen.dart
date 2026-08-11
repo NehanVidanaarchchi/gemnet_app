@@ -28,20 +28,18 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
       body: SafeArea(child: _tabs[_index]),
       floatingActionButton: _index == 0
           ? FloatingActionButton.extended(
-              backgroundColor: AppColors.white,
-              foregroundColor: AppColors.black,
               icon: const Icon(Icons.add_a_photo_outlined),
               label: const Text('Add Gem'),
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddGemScreen())),
             )
           : null,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), label: 'My Listings'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'Chats'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Listings'),
+          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'Chats'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
